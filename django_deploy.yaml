@@ -1,0 +1,73 @@
+---
+- hosts: "{{ hosts }}"
+  remote_user: root
+  vars_prompt:
+    - name: admin_username
+      prompt: "Django superuser username"
+      default: "admin"
+    - name: admin_email
+      prompt: "Django superuser email"
+    - name: admin_password
+      prompt: "Django superuser password"
+      private: yes
+      confirm: yes
+  vars_files:
+    - "django_deploy_var.yaml"
+  tasks:
+  - name: ensure base_path exists
+    file:
+      path: "{{ base_path }}"
+      state: directory
+  - name: "Create virtualenv for project {{ instance_name }}"
+    command: "{{ virtualenv_bin }} {{ virtualenv_dest_path }}"
+  - name: clone project
+    git:
+      repo: "{{ git_src }}"
+      dest: "{{ deploy_path }}"
+      ssh_opts: "-o ForwardAgent=yes "
+    tags: update
+  - name: "Install system requirements for this django app"
+    apt: "name={{item}} state=installed"
+    with_items: "{{ system_requirements }}"
+    tags: update
+  - name: "Install requirements"
+    command: "{{ virtualenv_dest_path }}/bin/pip install -r {{ deploy_path }}/requirements.txt"
+    tags: update
+  - name: "configure django environment .env"
+    template:
+      src: "templates/env.j2"
+      dest: "{{ deploy_path }}/.env"
+    tags: update
+  - name: "compile messages"
+    command: "{{ virtualenv_dest_path }}/bin/python manage.py compilemessages"
+    args:
+      chdir: "{{ deploy_path }}"
+    when: "{{ multilingual | default(False) }}"
+    tags: update
+  - name: "Collect static"
+    django_manage:
+      command: collectstatic
+      virtualenv: "{{ virtualenv_dest_path }}"
+      app_path: "{{ deploy_path }}"
+    tags: update
+  - name: "Migrate db"
+    django_manage:
+      command: migrate
+      virtualenv: "{{ virtualenv_dest_path }}"
+      app_path: "{{ deploy_path }}"
+    tags: update
+  - name: "Populate db"
+    django_manage:
+      command: loaddata
+      fixtures: "{{ fixtures }}"
+      virtualenv: "{{ virtualenv_dest_path }}"
+      app_path: "{{ deploy_path }}"
+    when: "{{ fixtures }}"
+  - expect:
+      command: "{{ virtualenv_dest_path }}/bin/python manage.py createsuperuser"
+      chdir: "{{ deploy_path }}"
+      responses:
+        'Username:': admin_username
+        'Email address:': admin_email
+        'Password:': admin_password
+        'Password \(again\):': admin_password
