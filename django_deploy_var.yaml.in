@@ -27,7 +27,7 @@ fixtures: ""
 
 # Variables to generate a .env in the django root using the env.j2 template
 secret_key: ""
-# list of allowed hosts
+# list of comma separated (no spaces) allowed hosts
 allowed_hosts: ""
 # ldap configuration (if any)
 ldap_uri: ""

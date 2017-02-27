@@ -1,16 +1,16 @@
 ---
 - hosts: "{{ hosts }}"
   remote_user: root
-  vars_prompt:
-    - name: admin_username
-      prompt: "Django superuser username"
-      default: "admin"
-    - name: admin_email
-      prompt: "Django superuser email"
-    - name: admin_password
-      prompt: "Django superuser password"
-      private: yes
-      confirm: yes
+  # vars_prompt:
+  #   - name: admin_username
+  #     prompt: "Django superuser username"
+  #     default: "admin"
+  #   - name: admin_email
+  #     prompt: "Django superuser email"
+  #   - name: admin_password
+  #     prompt: "Django superuser password"
+  #     private: yes
+  #     confirm: yes
   vars_files:
     - "django_deploy_var.yaml"
   tasks:
@@ -63,11 +63,12 @@
       virtualenv: "{{ virtualenv_dest_path }}"
       app_path: "{{ deploy_path }}"
     when: "{{ fixtures }}"
-  - expect:
-      command: "{{ virtualenv_dest_path }}/bin/python manage.py createsuperuser"
-      chdir: "{{ deploy_path }}"
-      responses:
-        'Username:': admin_username
-        'Email address:': admin_email
-        'Password:': admin_password
-        'Password \(again\):': admin_password
+  # This is not working as expected. Commenting it out for now
+  # - expect:
+  #     command: "{{ virtualenv_dest_path }}/bin/python manage.py createsuperuser"
+  #     chdir: "{{ deploy_path }}"
+  #     responses:
+  #       'Username:': admin_username
+  #       'Email address:': admin_email
+  #       'Password:': admin_password
+  #       'Password \(again\):': admin_password
